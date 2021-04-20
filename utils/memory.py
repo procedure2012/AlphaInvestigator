@@ -18,7 +18,7 @@ class Memory:
                 'playerTurn': r[0].playerTurn
             })
         
-    def commit_ltmemroy(self):
+    def commit_ltmemory(self):
         for i in self.stmemory:
             self.ltmemory.append(i)
         self.clear_stmemory()

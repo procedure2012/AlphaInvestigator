@@ -2,7 +2,7 @@ import random
 import numpy as np
 
 from config import config
-import MCTS as mc
+import model.MCTS as mc
 import utils.loggers as lg
 
 
@@ -20,11 +20,12 @@ class User():
         NN_value = None
         return action, pi, value, NN_value
 
+
 class Agent():
     def __init__(self, name, state_size, action_size, mcts_simulations, cpuct, model):
         self.name = name
         self.state_size = state_size
-        self.action_szie = action_size
+        self.action_size = action_size
         self.cpuct = cpuct
         self.MCTSsimulations = mcts_simulations
         self.model = model
@@ -73,11 +74,12 @@ class Agent():
         return action, pi, value, NN_value
     
     def get_preds(self, state):
-        inputToModel = np.array([self.model.covertToModeInput(state)])
+        self.model.eval()
+        inputToModel = np.array([self.model.convertToModelInput(state)], dtype=np.float32)
         preds = self.model(inputToModel)
         
-        value_array = preds[0]
-        logits_array = preds[1]
+        value_array = preds[0].cpu().detach().numpy()
+        logits_array = preds[1].cpu().detach().numpy()
         value = value_array[0]
         logits = logits_array[0]
         allowedActions = state.allowedActions
@@ -100,7 +102,7 @@ class Agent():
             probs = probs[allowedActions]
             
             for idx, action in enumerate(allowedActions):
-                newState, _, _ = leaf.takeAction(action)
+                newState, _, _ = leaf.state.takeAction(action)
                 if newState.id not in self.mcts.tree:
                     node = mc.Node(newState)
                     self.mcts.addNode(node)
@@ -112,7 +114,7 @@ class Agent():
                 newEdge = mc.Edge(leaf, node, probs[idx], action)
                 leaf.edges.append((action, newEdge))
         else:
-            lg.logger_mcts.info('GAME VALUE FOR %d: %f', leaf.playerTruen, value)
+            lg.logger_mcts.info('GAME VALUE FOR %d: %f', leaf.playerTurn, value)
             
         return value, breadcrumbs
 
@@ -123,7 +125,7 @@ class Agent():
         
         for action, edge in edges:
             pi[action] = pow(edge.stats['N'], 1/tau)
-            values[action] = edges.stats['Q']
+            values[action] = edge.stats['Q']
         
         pi = pi / (np.sum(pi) * 1.0)
         return pi, values
@@ -162,5 +164,5 @@ class Agent():
         self.mcts = mc.MCTS(self.root, self.cpuct)
     
     def changeRootMCTS(self, state):
-        lg.logger_mcts.info('****** CHANGING ROOT OF MCTS TREE TO %s FOR AGENT ******', state.id, self.name)
+        lg.logger_mcts.info('****** CHANGING ROOT OF MCTS TREE TO %s FOR AGENT %s ******', state.id, self.name)
         self.mcts.root = self.mcts.tree[state.id]

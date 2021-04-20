@@ -36,11 +36,11 @@ def playMatches(player1, player2, EPISODES, logger, turns_until_tau0, memory=Non
     sp_scores = {'sp': 0, 'drawn': 0, 'nsp': 0}
     points = {player1.name: [], player2.name: []}
     
-    for e in EPISODES:
+    for e in range(EPISODES):
         logger.info('====================')
         logger.info('EPISODE %d OF %d', e + 1, EPISODES)
         logger.info('====================')
-        print(e+1,)
+        print(str(e+1)+' ', end='')
         
         state = env.reset()
         done = 0
@@ -85,7 +85,7 @@ def playMatches(player1, player2, EPISODES, logger, turns_until_tau0, memory=Non
             logger.info('====================')
             
             state, value, done, _ = env.step(action)
-            env.gameState.rend(logger)
+            env.gameState.render(logger)
             
             if done == 1:
                 if memory is not None:

@@ -53,7 +53,7 @@ class MCTS():
         value = 0
         
         while not currentNode.isLeaf():
-            lg.logger_mcts.info("PLAYER TURN...%d", currentNode.state.palyerTurn)
+            lg.logger_mcts.info("PLAYER TURN...%d", currentNode.state.playerTurn)
             
             maxQU = -99999
             

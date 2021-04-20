@@ -1,16 +1,6 @@
-import argparse
 import os
-from datetime import datetime
-import json
 
 import torch
-import torch.multiprocessing as mp
-from torch.utils.data.distributed import DistributedSampler
-from torch.utils.data import DataLoader
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
-from torch.cuda.amp import GradScaler
-from utils.misc import setup_process, Logger, save_training_data, load_training_data, cleanup_process
 
 import pickle
 import random
@@ -23,23 +13,27 @@ from model.agent import Agent
 from utils.funcs import playMatches
 
 
-def main(rank, args):
+def main():
     # ============ logging, initialization and directories ==============
     lg.logger_main.info('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*')
     lg.logger_main.info('=*=*=*=*=*=.      NEW LOG      =*=*=*=*=*')
     lg.logger_main.info('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*')
     
+    device = torch.device("cuda:{}".format(0))
     env = Game()
     checkpoint_dir = os.path.join('./run', env.name)
     lg.logger_main.info('Set checkpoint to %s', checkpoint_dir)
     
     memory = Memory(config.MEMORY_SIZE)
-    current_NN = Residual_CNN(config.LEARNING_RATE, (2,)+env.grid_shape, env.action_size, config.HIDDEN_CNN_LAYERS)
-    best_NN = Residual_CNN(config.LEARNING_RATE, (2,)+env.grid_shape, env.action_size, config.HIDDEN_CNN_LAYERS)
+    current_NN = Residual_CNN(config.LEARNING_RATE, (2,)+env.grid_shape, env.action_size, config.HIDDEN_CNN_LAYERS, device)
+    best_NN = Residual_CNN(config.LEARNING_RATE, (2,)+env.grid_shape, env.action_size, config.HIDDEN_CNN_LAYERS, device)
     
     best_player_version = 0
     torch.save(current_NN.state_dict(), os.path.join(checkpoint_dir, 'models', 'best_NN_'+str(0).zfill(4)+'.pt'))
     best_NN.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'models', 'best_NN_'+str(0).zfill(4)+'.pt')))
+    
+    current_NN.to(device)
+    best_NN.to(device)
 
     current_player = Agent('current_player', env.state_size, env.action_size, config.MCTS_SIMS, config.CPUCT, current_NN)
     best_player = Agent('best_player', env.state_size, env.action_size, config.MCTS_SIMS, config.CPUCT, best_NN)
@@ -100,3 +94,7 @@ def main(rank, args):
                 best_NN.load_state_dict(torch.load(os.path.join(checkpoint_dir, 'models', 'best_NN_' + str(best_player_version).zfill(4) + '.pt')))
         else:
             print('MEMORY SIZE:', len(memory.ltmemory))
+
+
+if __name__ == '__main__':
+    main()
