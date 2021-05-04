@@ -102,10 +102,10 @@ class Residual_CNN(nn.Module):
         if y is None:
             return vh, ph
         
-        v_loss_func = nn.MSELoss()
-        p_loss_func = nn.CrossEntropyLoss()
-        v_loss = v_loss_func(vh, y['value_head'])
-        p_loss = p_loss_func(ph, torch.argmax(y['policy_head'], dim=1))
+        v_loss_func = nn.MSELoss(reduction='none')
+        p_loss_func = nn.CrossEntropyLoss(reduction='none')
+        v_loss = v_loss_func(vh.view(-1), torch.from_numpy(y['value_head']).to(self._device))
+        p_loss = p_loss_func(ph, torch.argmax(torch.from_numpy(y['policy_head']).to(self._device), dim=1))
         
         history = {}
         history['loss'] = 0.5 * v_loss + 0.5 * p_loss

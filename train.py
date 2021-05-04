@@ -1,6 +1,7 @@
 import os
 
 import torch
+from torch.optim import SGD
 
 import pickle
 import random
@@ -16,7 +17,7 @@ from utils.funcs import playMatches
 def main():
     # ============ logging, initialization and directories ==============
     lg.logger_main.info('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*')
-    lg.logger_main.info('=*=*=*=*=*=.      NEW LOG      =*=*=*=*=*')
+    lg.logger_main.info('=*=*=*=*=*=       NEW LOG       =*=*=*=*=*')
     lg.logger_main.info('=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*')
     
     device = torch.device("cuda:{}".format(0))
@@ -35,7 +36,8 @@ def main():
     current_NN.to(device)
     best_NN.to(device)
 
-    current_player = Agent('current_player', env.state_size, env.action_size, config.MCTS_SIMS, config.CPUCT, current_NN)
+    optimizer = SGD(current_NN.parameters(), lr=config.LEARNING_RATE, momentum=config.MOMENTUM)
+    current_player = Agent('current_player', env.state_size, env.action_size, config.MCTS_SIMS, config.CPUCT, current_NN, optimizer)
     best_player = Agent('best_player', env.state_size, env.action_size, config.MCTS_SIMS, config.CPUCT, best_NN)
     iteration = 0
     

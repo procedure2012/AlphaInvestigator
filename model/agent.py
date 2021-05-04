@@ -22,13 +22,14 @@ class User():
 
 
 class Agent():
-    def __init__(self, name, state_size, action_size, mcts_simulations, cpuct, model):
+    def __init__(self, name, state_size, action_size, mcts_simulations, cpuct, model, optimizer=None):
         self.name = name
         self.state_size = state_size
         self.action_size = action_size
         self.cpuct = cpuct
         self.MCTSsimulations = mcts_simulations
         self.model = model
+        self.optimizer = optimizer
         self.mcts = None
         self.train_overall_loss = []
         self.train_value_loss = []
@@ -147,16 +148,20 @@ class Agent():
         
         for i in range(config.TRAINING_LOOPS):
             minibatch = random.sample(ltmemory, min(config.BATCH_SIZE, len(ltmemory)))
-            training_states = np.array([self.model.convertToModelInput(row['state']) for row in minibatch])
-            training_targets = {'value_head': np.array([row['value'] for row in minibatch]),
-                                'policy_head': np.array([row['AV'] for row in minibatch])}
+            training_states = np.array([self.model.convertToModelInput(row['state']) for row in minibatch], dtype=np.float32)
+            training_targets = {'value_head': np.array([row['value'] for row in minibatch], dtype=np.float32),
+                                'policy_head': np.array([row['AV'] for row in minibatch], dtype=np.float32)}
             fit = self.model(training_states, training_targets)
             lg.logger_mcts.info('NEW LOSS %s', fit)
-            # TODO
-            # Add backward
-            self.train_overall_loss.append(round(fit['loss'][config.EPOCHS - 1], 4))
-            self.train_value_loss.append(round(fit['value_head_loss'][config.EPOCHS - 1], 4))
-            self.train_policy_loss.append(round(fit['policy_head_loss'][config.EPOCHS - 1], 4))
+            
+            loss = fit['loss'].mean()
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
+            
+            self.train_overall_loss.append(round(fit['loss'][config.EPOCHS - 1].item(), 4))
+            self.train_value_loss.append(round(fit['value_head_loss'][config.EPOCHS - 1].item(), 4))
+            self.train_policy_loss.append(round(fit['policy_head_loss'][config.EPOCHS - 1].item(), 4))
 
     def buildMCTS(self, state):
         lg.logger_mcts.info('****** BUILDING NEW MCTS TREE FOR AGENT %s ******', self.name)

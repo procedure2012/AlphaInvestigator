@@ -70,7 +70,6 @@ class MCTS():
                 
             for idx, (action, edge) in enumerate(currentNode.edges):
                 U = self.cpuct * ((1-epsilon) * edge.stats['P'] + epsilon * nu[idx]) * np.sqrt(Nb) / (1 + edge.stats['N'])
-                U = self.cpuct * edge.stats['P'] * np.sqrt(Nb) / (1 + edge.stats['N'])
                 Q = edge.stats['Q']
                 lg.logger_mcts.info('action: {} ({})... N = {}, P = {}, nu = {}, adjP = {}, W = {}, Q = {}, U = {}, Q+U ={}'. format(
                     action, action % 7, edge.stats['N'], np.round(edge.stats['P'], 6), np.round(nu[idx], 6), ((1-epsilon) * edge.stats['P'] + epsilon * nu[idx]),
